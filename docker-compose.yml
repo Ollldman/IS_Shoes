@@ -42,5 +42,22 @@ services:
       db:
         condition: service_healthy
 
+  frontend:
+    build: ./frontend
+    container_name: shoes_frontend
+    volumes:
+      # Маунтим весь код фронтенда для горячей перезагрузки
+      - ./frontend:/app
+      # Исключаем node_modules, чтобы они ставились внутри контейнера, а не маунтились с хоста
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      # Переменная для проксирования запросов к бэкенду
+      VITE_API_BASE_URL: http://localhost:8000
+    depends_on:
+      - backend
+
+      
 volumes:
   pgdata:
