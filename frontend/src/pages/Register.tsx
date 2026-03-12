@@ -4,30 +4,24 @@ import { useNavigate } from 'react-router-dom';
 import { register, ApiError } from '../services';
 import { type IUserCreate } from '../types/user';
 
-// Простая валидация на клиенте
-const validateForm = (data: IUserCreate): string | null => {
-  if (data.name.length < 2) return 'Имя должно содержать минимум 2 символа';
-  if (data.surname.length < 2) return 'Фамилия должна содержать минимум 2 символа';
-  
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(data.email)) return 'Введите корректный email';
-  
-  const phoneRegex = /^\+?[\d\s\-\(\)]{10,}$/;
-  if (!phoneRegex.test(data.phone)) return 'Введите корректный номер телефона';
-  
-  if (data.password.length < 8) return 'Пароль должен быть не менее 8 символов';
-  
-  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
-  if (!passwordRegex.test(data.password)) {
-    return 'Пароль должен содержать хотя бы одну букву и одну цифру';
-  }
-  
-  return null;
-};
+// Регулярные выражения из бэкенда
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^\+?[\d\s\-\(\)]{10,}$/;
+const NAME_REGEX = /^[a-zA-Zа-яА-ЯёЁ\s\-]{2,}$/;
+const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
 
-const Register = ( ) => {
+interface FieldErrors {
+  name?: string;
+  surname?: string;
+  email?: string;
+  phone?: string;
+  password?: string;
+  form?: string;
+}
+
+const Register = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<IUserCreate>({
     name: '',
     surname: '',
     email: '',
@@ -35,7 +29,8 @@ const Register = ( ) => {
     password: ''
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
 
   const handleLoginClick = () => {
     navigate('/login');
@@ -44,40 +39,102 @@ const Register = ( ) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    setError(null);
+    // Очищаем ошибку поля при изменении
+    if (errors[name as keyof FieldErrors]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name as keyof FieldErrors];
+        return newErrors;
+      });
+    }
   };
 
- const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  // Валидация имени/фамилии
+  const validateName = (value: string, fieldName: 'name' | 'surname'): string | undefined => {
+    if (!value) return `${fieldName === 'name' ? 'Имя' : 'Фамилия'} обязательно`;
+    if (!NAME_REGEX.test(value)) return `${fieldName === 'name' ? 'Имя' : 'Фамилия'} должно содержать только буквы, пробелы или дефисы (мин. 2 символа)`;
+    return undefined;
+  };
+
+  // Валидация email
+  const validateEmail = (value: string): string | undefined => {
+    if (!value) return 'Email обязателен';
+    if (!EMAIL_REGEX.test(value)) return 'Введите корректный email';
+    return undefined;
+  };
+
+  // Валидация телефона
+  const validatePhone = (value: string): string | undefined => {
+    if (!value) return 'Телефон обязателен';
+    if (!PHONE_REGEX.test(value)) return 'Введите корректный номер телефона (минимум 10 цифр)';
+    return undefined;
+  };
+
+  // Валидация пароля
+  const validatePassword = (value: string): string | undefined => {
+    if (!value) return 'Пароль обязателен';
+    if (value.length < 8) return 'Пароль должен быть не менее 8 символов';
+    if (!PASSWORD_REGEX.test(value)) return 'Пароль должен содержать хотя бы одну букву и одну цифру';
+    return undefined;
+  };
+
+  // Валидация поля при потере фокуса
+  const handleBlur = (field: keyof FieldErrors, value: string) => {
+    setTouchedFields(prev => new Set(prev).add(field));
+    
+    let error: string | undefined;
+    if (field === 'name' || field === 'surname') error = validateName(value, field);
+    if (field === 'email') error = validateEmail(value);
+    if (field === 'phone') error = validatePhone(value);
+    if (field === 'password') error = validatePassword(value);
+    
+    setErrors(prev => ({ ...prev, [field]: error }));
+  };
+
+  // Валидация всей формы
+  const validateForm = (): boolean => {
+    const nameError = validateName(formData.name, 'name');
+    const surnameError = validateName(formData.surname, 'surname');
+    const emailError = validateEmail(formData.email);
+    const phoneError = validatePhone(formData.phone);
+    const passwordError = validatePassword(formData.password);
+    
+    const newErrors: FieldErrors = {};
+    if (nameError) newErrors.name = nameError;
+    if (surnameError) newErrors.surname = surnameError;
+    if (emailError) newErrors.email = emailError;
+    if (phoneError) newErrors.phone = phoneError;
+    if (passwordError) newErrors.password = passwordError;
+    
+    setErrors(newErrors);
+    
+    // Помечаем все поля как "тронутые"
+    setTouchedFields(new Set(['name', 'surname', 'email', 'phone', 'password']));
+    
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
-
-    // Валидация перед отправкой
-    const validationError = validateForm(formData);
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
+    
+    if (!validateForm()) return;
+    
     setIsLoading(true);
+    setErrors({});
 
     try {
-      // Вызываем функцию register из authService
       const response = await register(formData);
-      
       console.log('Registration successful:', response);
       
-      // После успешной регистрации перенаправляем на страницу входа
-      // или можно сразу залогинить пользователя
       navigate('/login', { 
         state: { message: 'Регистрация успешна! Теперь вы можете войти.' } 
       });
       
     } catch (err) {
       if (err instanceof ApiError) {
-        // Обрабатываем ошибку от API
-        setError(err.message);
+        setErrors({ form: err.message });
       } else {
-        setError('Произошла неизвестная ошибка');
+        setErrors({ form: 'Произошла неизвестная ошибка' });
       }
       console.error('Registration error:', err);
     } finally {
@@ -85,15 +142,22 @@ const Register = ( ) => {
     }
   };
 
-  const inputStyle = {
+  // Стили для поля с ошибкой
+  const getInputStyle = (fieldName: string, hasError: boolean) => ({
     padding: 'var(--space-3)',
     borderRadius: 'var(--radius-md)',
-    border: '1px solid var(--border)',
+    border: `1px solid ${hasError ? 'var(--error)' : 'var(--border)'}`,
     fontSize: '16px',
     width: '100%',
     transition: 'border-color 0.2s, box-shadow 0.2s',
     opacity: isLoading ? 0.7 : 1,
-    cursor: isLoading ? 'not-allowed' : 'auto'
+    cursor: isLoading ? 'not-allowed' : 'auto',
+    backgroundColor: hasError ? 'var(--error-bg)' : 'white',
+    outline: 'none'
+  });
+
+  const isFieldError = (fieldName: keyof FieldErrors): boolean => {
+    return touchedFields.has(fieldName) && !!errors[fieldName];
   };
 
   const labelStyle = {
@@ -111,8 +175,9 @@ const Register = ( ) => {
       onAlternativeClick={handleLoginClick}
     >
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-        {/* Блок с ошибкой */}
-        {error && (
+        
+        {/* Общая ошибка формы */}
+        {errors.form && (
           <div style={{
             backgroundColor: 'var(--error-bg)',
             color: 'var(--error)',
@@ -122,115 +187,137 @@ const Register = ( ) => {
             marginBottom: 'var(--space-2)',
             border: '1px solid var(--error)'
           }}>
-            {error}
+            {errors.form}
           </div>
         )}
+
+        {/* Поля Имя и Фамилия */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <label style={labelStyle}>Имя</label>
+          {/* Имя */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+            <label style={labelStyle}>
+              Имя <span style={{ color: 'var(--error)' }}>*</span>
+            </label>
             <input
               type="text"
               name="name"
               value={formData.name}
               onChange={handleChange}
-              required
-              disabled={isLoading}
-              style={inputStyle}
+              onBlur={(e) => handleBlur('name', e.target.value)}
               onFocus={(e) => {
                 e.target.style.borderColor = 'var(--primary)';
                 e.target.style.boxShadow = '0 0 0 3px rgba(74, 59, 52, 0.1)';
               }}
-              onBlur={(e) => {
-                e.target.style.borderColor = 'var(--border)';
-                e.target.style.boxShadow = 'none';
-              }}
+              disabled={isLoading}
+              style={getInputStyle('name', isFieldError('name'))}
             />
+            {isFieldError('name') && (
+              <p style={{ color: 'var(--error)', fontSize: '12px', marginTop: '2px' }}>
+                {errors.name}
+              </p>
+            )}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <label style={labelStyle}>Фамилия</label>
+          {/* Фамилия */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+            <label style={labelStyle}>
+              Фамилия <span style={{ color: 'var(--error)' }}>*</span>
+            </label>
             <input
               type="text"
               name="surname"
               value={formData.surname}
               onChange={handleChange}
-              required
-              disabled={isLoading}
-              style={inputStyle}
+              onBlur={(e) => handleBlur('surname', e.target.value)}
               onFocus={(e) => {
                 e.target.style.borderColor = 'var(--primary)';
                 e.target.style.boxShadow = '0 0 0 3px rgba(74, 59, 52, 0.1)';
               }}
-              onBlur={(e) => {
-                e.target.style.borderColor = 'var(--border)';
-                e.target.style.boxShadow = 'none';
-              }}
+              disabled={isLoading}
+              style={getInputStyle('surname', isFieldError('surname'))}
             />
+            {isFieldError('surname') && (
+              <p style={{ color: 'var(--error)', fontSize: '12px', marginTop: '2px' }}>
+                {errors.surname}
+              </p>
+            )}
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <label style={labelStyle}>Email</label>
+        {/* Email */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+          <label style={labelStyle}>
+            Email <span style={{ color: 'var(--error)' }}>*</span>
+          </label>
           <input
             type="email"
             name="email"
             value={formData.email}
             onChange={handleChange}
-            required
-            disabled={isLoading}
-            style={inputStyle}
+            onBlur={(e) => handleBlur('email', e.target.value)}
             onFocus={(e) => {
               e.target.style.borderColor = 'var(--primary)';
               e.target.style.boxShadow = '0 0 0 3px rgba(74, 59, 52, 0.1)';
             }}
-            onBlur={(e) => {
-              e.target.style.borderColor = 'var(--border)';
-              e.target.style.boxShadow = 'none';
-            }}
+            disabled={isLoading}
+            style={getInputStyle('email', isFieldError('email'))}
           />
+          {isFieldError('email') && (
+            <p style={{ color: 'var(--error)', fontSize: '12px', marginTop: '2px' }}>
+              {errors.email}
+            </p>
+          )}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <label style={labelStyle}>Телефон</label>
+        {/* Телефон */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+          <label style={labelStyle}>
+            Телефон <span style={{ color: 'var(--error)' }}>*</span>
+          </label>
           <input
             type="tel"
             name="phone"
             value={formData.phone}
             onChange={handleChange}
-            required
-            disabled={isLoading}
-            placeholder="+7 (999) 999-99-99"
-            style={inputStyle}
+            onBlur={(e) => handleBlur('phone', e.target.value)}
             onFocus={(e) => {
               e.target.style.borderColor = 'var(--primary)';
               e.target.style.boxShadow = '0 0 0 3px rgba(74, 59, 52, 0.1)';
             }}
-            onBlur={(e) => {
-              e.target.style.borderColor = 'var(--border)';
-              e.target.style.boxShadow = 'none';
-            }}
+            disabled={isLoading}
+            placeholder="+7 (999) 999-99-99"
+            style={getInputStyle('phone', isFieldError('phone'))}
           />
+          {isFieldError('phone') && (
+            <p style={{ color: 'var(--error)', fontSize: '12px', marginTop: '2px' }}>
+              {errors.phone}
+            </p>
+          )}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <label style={labelStyle}>Пароль</label>
+        {/* Пароль */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+          <label style={labelStyle}>
+            Пароль <span style={{ color: 'var(--error)' }}>*</span>
+          </label>
           <input
             type="password"
             name="password"
             value={formData.password}
             onChange={handleChange}
-            required
-            disabled={isLoading}
-            style={inputStyle}
+            onBlur={(e) => handleBlur('password', e.target.value)}
             onFocus={(e) => {
               e.target.style.borderColor = 'var(--primary)';
               e.target.style.boxShadow = '0 0 0 3px rgba(74, 59, 52, 0.1)';
             }}
-            onBlur={(e) => {
-              e.target.style.borderColor = 'var(--border)';
-              e.target.style.boxShadow = 'none';
-            }}
+            disabled={isLoading}
+            style={getInputStyle('password', isFieldError('password'))}
           />
+          {isFieldError('password') && (
+            <p style={{ color: 'var(--error)', fontSize: '12px', marginTop: '2px' }}>
+              {errors.password}
+            </p>
+          )}
         </div>
 
         <button
@@ -244,18 +331,19 @@ const Register = ( ) => {
             fontWeight: 600,
             fontSize: '16px',
             marginTop: 'var(--space-4)',
-            transition: 'background-color 0.2s'
+            transition: 'background-color 0.2s, opacity 0.2s',
+            opacity: isLoading ? 0.7 : 1,
+            cursor: isLoading ? 'not-allowed' : 'pointer',
+            border: 'none'
           }}
           onMouseEnter={(e) => {
-            if (!isLoading)
-            {e.currentTarget.style.backgroundColor = 'var(--accent)'}
+            if (!isLoading) e.currentTarget.style.backgroundColor = 'var(--accent)';
           }}
           onMouseLeave={(e) => {
-            if (!isLoading)
-            {e.currentTarget.style.backgroundColor = 'var(--primary)'}
+            if (!isLoading) e.currentTarget.style.backgroundColor = 'var(--primary)';
           }}
         >
-          {isLoading ? 'Регистрация...':'Зарегистрироваться'}
+          {isLoading ? 'Регистрация...' : 'Зарегистрироваться'}
         </button>
       </form>
     </AuthCard>
