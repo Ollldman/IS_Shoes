@@ -1,73 +1,159 @@
-# React + TypeScript + Vite
+## 📘 README: IS SHOES Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+### 🚀 О проекте
+Frontend часть веб-приложения для мастерской по ремонту обуви. Разработано на React + TypeScript с использованием Vite и Bun.
 
-Currently, two official plugins are available:
+### 🛠 Технологический стек
+- **React 18** - библиотека для пользовательских интерфейсов
+- **TypeScript** - типизация кода
+- **Vite** - сборщик проекта
+- **Bun** - пакетный менеджер и рантайм
+- **React Router DOM v6** - маршрутизация
+- **Чистый CSS** - стилизация (без Tailwind)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### 📁 Структура проекта
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+src/
+├── components/          # Переиспользуемые компоненты
+│   ├── AuthCard.tsx    # Карточка для форм авторизации
+│   ├── DashboardLayout.tsx # Основной layout дашборда
+│   ├── EditOrderModal.tsx # Модальное окно редактирования
+│   ├── Footer.tsx      # Подвал сайта
+│   ├── Header.tsx      # Шапка сайта
+│   ├── MobileNav.tsx   # Мобильная навигация
+│   ├── ProtectedRoute.tsx # Защита маршрутов
+│   ├── Sidebar.tsx     # Боковое меню дашборда
+│   └── Slider.tsx      # Слайдер для лендинга
+│
+├── pages/               # Страницы приложения
+│   ├── Dashboard/       # Страницы внутри дашборда
+│   │   ├── CreateOrder.tsx    # Создание заказа
+│   │   ├── ManageOrders.tsx   # Управление заказами (админ)
+│   │   ├── MyOrders.tsx       # Мои заказы
+│   │   └── Profile.tsx        # Профиль пользователя
+│   ├── Dashboard.tsx   # Корневая страница дашборда
+│   ├── Landing.tsx     # Главная страница (лендинг)
+│   ├── Login.tsx       # Страница входа
+│   └── Register.tsx    # Страница регистрации
+│
+├── contexts/            # React контексты
+│   └── AuthContext.tsx # Контекст аутентификации
+│
+├── services/            # Работа с API
+│   ├── apiClient.ts    # Базовый HTTP клиент
+│   ├── authService.ts  # API для аутентификации
+│   ├── orderService.ts # API для заказов
+│   └── index.ts        # Точка экспорта сервисов
+│
+├── types/               # TypeScript типы и интерфейсы
+│   ├── enums.ts        # Перечисления (статусы, роли)
+│   ├── order.ts        # Типы для заказов
+│   └── user.ts         # Типы для пользователей
+│
+├── AppRouter.tsx        # Конфигурация маршрутов
+├── App.tsx             # Корневой компонент
+├── main.tsx            # Точка входа
+└── index.css           # Глобальные стили и токены
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 🔐 Функциональность по ролям
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+#### 👤 Клиент
+- Регистрация и вход
+- Просмотр своих заказов
+- Создание новых заказов
+- Фильтрация заказов по статусу
+- Просмотр профиля
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+#### 👨‍💼 Менеджер
+- Всё, что у клиента
+- Просмотр всех заказов
+- Изменение статуса заказов
+- Редактирование заказов
+
+#### 👑 Администратор
+- Всё, что у менеджера
+- Удаление заказов
+
+### 🚦 Маршруты
+
+| Путь | Доступ | Описание |
+|------|--------|----------|
+| `/` | Все | Главная страница |
+| `/login` | Гости | Вход в систему |
+| `/register` | Гости | Регистрация |
+| `/dashboard` | Авторизованные | Корень дашборда |
+| `/dashboard/my-orders` | Авторизованные | Мои заказы |
+| `/dashboard/create-order` | Авторизованные | Создание заказа |
+| `/dashboard/profile` | Авторизованные | Профиль |
+| `/dashboard/manage-orders` | Admin/Manager | Управление заказами |
+
+### 🎨 Дизайн-система
+
+Проект использует CSS-переменные для единой стилизации:
+
+```css
+:root {
+  /* Цвета */
+  --primary: #4A3B34;        /* Основной темный */
+  --accent: #B85C3A;         /* Акцентный оранжевый */
+  --background: #F8F6F4;     /* Фоновый светлый */
+  --card: #FFFFFF;           /* Карточки */
+  --border: #E8E0DA;         /* Границы */
+  --text-muted: #8C7F76;     /* Второстепенный текст */
+  
+  /* Статусы */
+  --success: #2B7A4B;
+  --warning: #E68A3A;
+  --error: #C33C2C;
+  
+  /* Отступы */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px;
+  --space-4: 16px; --space-6: 24px; --space-8: 32px;
+}
 ```
+
+### 📦 Установка и запуск
+
+```bash
+# Установка зависимостей
+bun install
+
+# Запуск в режиме разработки
+bun run dev
+
+# Сборка для продакшена
+bun run build
+
+# Предпросмотр сборки
+bun run preview
+```
+
+### 🔗 API Endpoints
+
+Проект ожидает работающий backend на `http://localhost:8000`:
+
+- `POST /auth/register` - регистрация
+- `POST /auth/login` - вход (form-data)
+- `GET /users/me` - данные текущего пользователя
+- `GET /orders/me` - заказы текущего пользователя
+- `POST /orders/` - создание заказа
+- `GET /admin/orders/` - все заказы (admin/manager)
+- `PATCH /admin/orders/{id}/status` - смена статуса
+- `PUT /admin/orders/{id}` - полное редактирование
+- `DELETE /admin/orders/{id}` - удаление (только admin)
+
+### 📱 Адаптивность
+
+- **Десктоп** (>768px): боковое меню, навигация в шапке
+- **Мобильный** (<768px): нижняя навигация, выезжающее меню
+- Все компоненты адаптированы под мобильные устройства
+- Оптимизировано под разрешение 390×844 px
+
+### 🤝 Вклад в проект
+
+1. Соблюдай структуру папок
+2. Используй TypeScript для типизации
+3. Следуй дизайн-токенам из `index.css`
+4. Проверяй адаптивность на мобильных устройствах
