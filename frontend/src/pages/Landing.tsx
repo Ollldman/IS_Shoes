@@ -4,6 +4,9 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useState, useEffect } from 'react';
 
+import heroDesktop from '../assets/images/hero-bg-desktop.webp'
+import heroMobile from '../assets/images/hero-bg-mobile.webp';
+
 const Landing = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
@@ -42,6 +45,15 @@ const Landing = () => {
 
 // ==================== Hero секция ====================
 const HeroSection = ({ onOrderClick, onContactClick }: { onOrderClick: () => void; onContactClick: () => void }) => {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
     <section style={{
       position: 'relative',
@@ -61,36 +73,34 @@ const HeroSection = ({ onOrderClick, onContactClick }: { onOrderClick: () => voi
         left: 0,
         right: 0,
         bottom: 0,
-        background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)',
-        opacity: 0.05,
         zIndex: 1
-      }} />
-
-      {/* Декоративные элементы */}
-      <div style={{
-        position: 'absolute',
-        top: '10%',
-        right: '5%',
-        width: '300px',
-        height: '300px',
-        borderRadius: '50%',
-        background: 'var(--accent)',
-        opacity: 0.1,
-        filter: 'blur(60px)',
-        zIndex: 1
-      }} />
-      <div style={{
-        position: 'absolute',
-        bottom: '10%',
-        left: '5%',
-        width: '400px',
-        height: '400px',
-        borderRadius: '50%',
-        background: 'var(--primary)',
-        opacity: 0.1,
-        filter: 'blur(80px)',
-        zIndex: 1
-      }} />
+      }}>
+        {/* Адаптивное изображение */}
+        <picture>
+          <source media="(max-width: 767px)" srcSet={heroMobile} />
+          <img
+            src={heroDesktop}
+            alt="Мастерская по ремонту обуви"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center'
+            }}
+          />
+        </picture>
+        
+        {/* Затемнение для лучшей читаемости текста */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'linear-gradient(135deg, rgba(74, 59, 52, 0.7) 0%, rgba(184, 92, 58, 0.5) 100%)',
+          zIndex: 2
+        }} />
+      </div>
 
       {/* Контент */}
       <div style={{
@@ -104,7 +114,7 @@ const HeroSection = ({ onOrderClick, onContactClick }: { onOrderClick: () => voi
         <h1 style={{
           fontSize: 'clamp(40px, 8vw, 72px)',
           fontWeight: 700,
-          color: 'var(--primary)',
+          color: '#fff',
           marginBottom: 'var(--space-4)',
           lineHeight: 1.1,
           fontFamily: 'var(--font-display)'
@@ -114,7 +124,7 @@ const HeroSection = ({ onOrderClick, onContactClick }: { onOrderClick: () => voi
         
         <p style={{
           fontSize: 'clamp(18px, 3vw, 24px)',
-          color: 'var(--text-muted)',
+          color: '#fff',
           marginBottom: 'var(--space-8)',
           maxWidth: '700px',
           marginLeft: 'auto',
@@ -162,7 +172,7 @@ const HeroSection = ({ onOrderClick, onContactClick }: { onOrderClick: () => voi
             onClick={onContactClick}
             style={{
               backgroundColor: 'transparent',
-              color: 'var(--primary)',
+              color: '#fff',
               padding: 'var(--space-4) var(--space-8)',
               borderRadius: 'var(--radius-full)',
               border: '2px solid var(--primary)',
@@ -179,7 +189,7 @@ const HeroSection = ({ onOrderClick, onContactClick }: { onOrderClick: () => voi
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = 'var(--primary)';
+              e.currentTarget.style.color = '#fff';
               e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
@@ -188,6 +198,7 @@ const HeroSection = ({ onOrderClick, onContactClick }: { onOrderClick: () => voi
         </div>
 
         {/* Иконки преимуществ */}
+        {!isMobile && 
         <div style={{
           display: 'flex',
           justifyContent: 'center',
@@ -195,37 +206,50 @@ const HeroSection = ({ onOrderClick, onContactClick }: { onOrderClick: () => voi
           marginTop: 'var(--space-16)',
           flexWrap: 'wrap'
         }}>
-          <Benefit icon="⏱️" text="Быстро" subtext="от 2 часов" />
-          <Benefit icon="✨" text="Качественно" subtext="гарантия 1 год" />
-          <Benefit icon="💰" text="Доступно" subtext="цены от 500₽" />
+          <Benefit icon="⏱️" text="Быстро" subtext="от 2 часов" light={true} />
+          <Benefit icon="✨" text="Качественно" subtext="гарантия 1 год" light={true} />
+          <Benefit icon="💰" text="Доступно" subtext="цены от 500₽" light={true} />
         </div>
+        }
       </div>
+      
     </section>
   );
 };
 
 // Компонент преимущества
-const Benefit = ({ icon, text, subtext }: { icon: string; text: string; subtext: string }) => (
+const Benefit = ({ icon, text, subtext, light = false }: { icon: string; text: string; subtext: string; light?: boolean }) => (
   <div style={{
     textAlign: 'center',
-    animation: 'fadeInUp 0.6s ease'
+    animation: 'fadeInUp 0.6s ease',
+    backgroundColor: light ? 'rgba(74, 59, 52, 0.8)' : 'transparent', // Полупрозрачный фон для контраста
+    padding: light ? 'var(--space-4) var(--space-6)' : '0',
+    borderRadius: light ? 'var(--radius-xl)' : '0',
+    backdropFilter: light ? 'blur(5px)' : 'none', // Эффект размытия
+    border: light ? '1px solid rgba(255,255,255,0.2)' : 'none',
+    minWidth: '150px'
   }}>
     <div style={{
       fontSize: '48px',
-      marginBottom: 'var(--space-2)'
+      marginBottom: 'var(--space-2)',
+      filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))'
     }}>
       {icon}
     </div>
     <div style={{
       fontSize: '18px',
-      fontWeight: 600,
-      color: 'var(--primary)'
+      fontWeight: 700,
+      color: light ? '#fff' : 'var(--primary)',
+      textShadow: light ? '2px 2px 4px rgba(0,0,0,0.5)' : 'none',
+      marginBottom: '4px'
     }}>
       {text}
     </div>
     <div style={{
       fontSize: '14px',
-      color: 'var(--text-muted)'
+      fontWeight: 500,
+      color: light ? 'rgba(255,255,255,0.95)' : 'var(--text-muted)',
+      textShadow: light ? '1px 1px 2px rgba(0,0,0,0.5)' : 'none'
     }}>
       {subtext}
     </div>
